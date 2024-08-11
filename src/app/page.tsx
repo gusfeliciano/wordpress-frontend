@@ -3,17 +3,40 @@ import Link from 'next/link'
 import { gql } from "@apollo/client";
 import client from "../lib/apollo-client";
 import SearchBar from '../components/SearchBar';
+import FeaturedPost from '../components/FeaturedPost';
+import PostCard from '../components/PostCard';
+import { Tag } from 'lucide-react';
 
 interface Post {
   id: string;
   title: string;
   excerpt: string;
   slug: string;
+  date: string;
   featuredImage: {
     node: {
       sourceUrl: string;
     };
   } | null;
+  categories: {
+    nodes: Category[];
+  };
+  tags: {
+    nodes: Tag[];
+  };
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  count: number;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 interface PageInfo {
@@ -29,6 +52,7 @@ const GET_POSTS = gql`
         title
         excerpt
         slug
+        date
         featuredImage {
           node {
             sourceUrl
@@ -54,60 +78,31 @@ const GET_POSTS = gql`
         hasNextPage
       }
     }
+    categories(first: 10) {
+      nodes {
+        id
+        name
+        slug
+        count
+      }
+    }
   }
 `;
 
-interface Tag {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-interface Post {
-  id: string;
-  title: string;
-  excerpt: string;
-  slug: string;
-  featuredImage: {
-    node: {
-      sourceUrl: string;
-    };
-  } | null;
-  categories: {
-    nodes: Category[];
-  };
-  tags: {
-    nodes: Tag[];
-  };
-}
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-interface Post {
-  id: string;
-  title: string;
-  excerpt: string;
-  slug: string;
-  featuredImage: {
-    node: {
-      sourceUrl: string;
-    };
-  } | null;
-  categories: {
-    nodes: Category[];
-  };
-}
-
-async function getPosts(first: number, after?: string): Promise<{ posts: Post[], pageInfo: PageInfo }> {
+async function getPosts(first: number, after?: string): Promise<{ posts: Post[], pageInfo: PageInfo, categories: Category[] }> {
   const { data } = await client.query({
     query: GET_POSTS,
     variables: { first, after },
   });
-  return { posts: data.posts.nodes, pageInfo: data.posts.pageInfo };
+  
+  // Filter out categories with no posts
+  const nonEmptyCategories = data.categories.nodes.filter((category: Category) => category.count > 0);
+  
+  return { 
+    posts: data.posts.nodes, 
+    pageInfo: data.posts.pageInfo, 
+    categories: nonEmptyCategories.slice(0, 5) // Limit to 5 categories
+  };
 }
 
 export default async function Home({
@@ -118,52 +113,50 @@ export default async function Home({
   const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
   const pageSize = 6; // Number of posts per page
 
-  const { posts, pageInfo } = await getPosts(pageSize, page > 1 ? `${(page - 1) * pageSize - 1}` : undefined);
+  const { posts, pageInfo, categories } = await getPosts(pageSize, page > 1 ? `${(page - 1) * pageSize - 1}` : undefined);
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Travel Adventures</h1>
-          <SearchBar />
-        </div>
-      </header>
-
+    <main className="min-h-screen bg-[#DCD5DC]">
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post: Post) => (
-              <Link href={`/post/${post.slug}`} key={post.id}>
-                <div className="bg-white overflow-hidden shadow rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg">
-                  <div className="p-5">
-                    <div className="flex-shrink-0">
-                      {post.featuredImage?.node?.sourceUrl ? (
-                        <Image
-                          className="h-48 w-full object-cover"
-                          src={post.featuredImage.node.sourceUrl}
-                          alt={post.title}
-                          width={300}
-                          height={200}
-                        />
-                      ) : (
-                        <div className="h-48 w-full bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-400">No image available</span>
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="mt-4 text-lg font-medium text-gray-900">{post.title}</h3>
-                    <div className="mt-2 text-base text-gray-500" dangerouslySetInnerHTML={{ __html: post.excerpt }} />
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold mb-4 text-[#1A385A]">Discover Your Next Adventure</h2>
+            <SearchBar />
           </div>
+
+          {posts.length > 0 && (
+            <section className="mb-12">
+              <FeaturedPost
+                title={posts[0].title}
+                slug={posts[0].slug}
+                imageUrl={posts[0].featuredImage?.node?.sourceUrl || '/placeholder-image.jpg'}
+                location={posts[0].categories.nodes[0]?.name || 'Unknown Location'}
+                date={new Date(posts[0].date).toLocaleDateString()}
+              />
+            </section>
+          )}
+
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-4 text-[#1A385A]">Latest Travel Stories</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {posts.map((post: Post) => (
+                <PostCard
+                  key={post.id}
+                  title={post.title}
+                  slug={post.slug}
+                  excerpt={post.excerpt}
+                  imageUrl={post.featuredImage?.node?.sourceUrl || '/placeholder-image.jpg'}
+                  category={post.categories.nodes[0]?.name || 'Uncategorized'}
+                />
+              ))}
+            </div>
+          </section>
 
           <div className="mt-8 flex justify-between">
             {page > 1 && (
               <Link
                 href={`/?page=${page - 1}`}
-                className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="bg-[#1A385A] text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-[#769ABE]"
               >
                 Previous
               </Link>
@@ -171,14 +164,30 @@ export default async function Home({
             {pageInfo.hasNextPage && (
               <Link
                 href={`/?page=${page + 1}`}
-                className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="bg-[#1A385A] text-white py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:bg-[#769ABE]"
               >
                 Next
               </Link>
             )}
           </div>
+
+          <section className="mt-12">
+            <h2 className="text-2xl font-bold mb-4 text-[#1A385A]">Explore by Category</h2>
+            <div className="flex flex-wrap gap-4">
+              {categories.map((category: Category) => (
+                <Link
+                  key={category.id}
+                  href={`/category/${category.slug}`}
+                  className="bg-white px-4 py-2 rounded-full shadow-md text-[#E46F44] hover:bg-[#E46F44] hover:text-white transition duration-300"
+                >
+                  <Tag size={16} className="inline mr-2" />
+                  {category.name}
+                </Link>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </main>
-  )
+  );
 }
