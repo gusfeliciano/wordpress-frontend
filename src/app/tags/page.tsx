@@ -1,40 +1,14 @@
 import Link from 'next/link';
-import { gql } from "@apollo/client";
-import client from "../../lib/apollo-client";
-
-interface Tag {
-  id: string;
-  name: string;
-  slug: string;
-  count: number;
-}
-
-const GET_TAGS = gql`
-  query GetTags {
-    tags {
-      nodes {
-        id
-        name
-        slug
-        count
-      }
-    }
-  }
-`;
-
-async function getTags(): Promise<Tag[]> {
-  const { data } = await client.query({ query: GET_TAGS });
-  return data.tags.nodes;
-}
+import { getTags } from '../../lib/api/tags';
 
 export default async function Tags() {
   const tags = await getTags();
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
+    <main className="min-h-screen bg-[#DCD5DC]">
+      <header className="bg-[#1A385A] shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Tags</h1>
+          <h1 className="text-3xl font-bold text-white">Tags</h1>
         </div>
       </header>
 
@@ -43,7 +17,7 @@ export default async function Tags() {
           <div className="flex flex-wrap gap-4">
             {tags.map((tag) => (
               <Link href={`/tag/${tag.slug}`} key={tag.id}>
-                <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2 hover:bg-gray-300 transition-colors duration-200">
+                <span className="inline-block bg-white rounded-full px-3 py-1 text-sm font-semibold text-[#1A385A] mr-2 mb-2 hover:bg-[#E46F44] hover:text-white transition-colors duration-200">
                   {tag.name} ({tag.count})
                 </span>
               </Link>

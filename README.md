@@ -15,6 +15,7 @@ This project serves as a modern, performant frontend for a WordPress blog using 
 - Pagination for blog listings
 - Individual post pages
 - Comments system integrated with WordPress
+- Category and tag pages
 - Responsive design using Tailwind CSS
 - GraphQL integration for efficient data fetching
 
@@ -42,8 +43,21 @@ This project serves as a modern, performant frontend for a WordPress blog using 
 ## Project Structure
 
 - `src/app/`: Next.js app router pages and API routes
+  - `api/`: API routes (e.g., comments handling)
+  - `categories/`: Category listing and individual category pages
+  - `tags/`: Tag listing and individual tag pages
+  - `post/`: Individual post pages
+  - `search/`: Search functionality
 - `src/components/`: Reusable React components
 - `src/lib/`: Utility functions and configurations
+  - `api/`: Data fetching functions for posts, categories, tags, etc.
+- `src/types/`: TypeScript type definitions
+
+## Rationale for Structure
+
+- `app/api/`: Contains API routes that Next.js will automatically handle as serverless functions. Used for server-side operations like handling comments.
+- `lib/api/`: Contains utility functions for data fetching, used by pages or components. These are not exposed as API endpoints but are used internally for data retrieval.
+- Separation of concerns: By keeping API routes, pages, components, and utility functions in separate directories, we maintain a clean and organized codebase.
 
 ## Contributing
 

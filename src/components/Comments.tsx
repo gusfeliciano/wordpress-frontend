@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface Comment {
   id: string;
@@ -11,25 +11,19 @@ interface Comment {
       name: string;
     };
   };
-  status: string;
 }
 
 interface CommentsProps {
   comments: Comment[];
-  postId: number;
+  postId: string;
 }
 
-export default function Comments({ comments: initialComments, postId }: CommentsProps) {
-  const [comments, setComments] = useState(initialComments);
+export default function Comments({ comments, postId }: CommentsProps) {
   const [newComment, setNewComment] = useState('');
   const [author, setAuthor] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    console.log('Received postId:', postId);
-  }, [postId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,14 +46,11 @@ export default function Comments({ comments: initialComments, postId }: Comments
 
       const data = await response.json();
 
-      if (response.status === 202 || (response.ok && data.status === 'hold')) {
-        setMessage('Your comment is awaiting moderation.');
-      } else if (response.ok) {
-        setComments([...comments, data]);
+      if (response.ok) {
         setNewComment('');
         setAuthor('');
         setEmail('');
-        setMessage('Comment submitted successfully!');
+        setMessage('Comment submitted successfully! It will appear after approval.');
       } else {
         throw new Error(data.error || 'Failed to submit comment');
       }
@@ -74,14 +65,18 @@ export default function Comments({ comments: initialComments, postId }: Comments
   return (
     <div className="mt-8">
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
-      {comments.filter(comment => comment.status === 'approved').map((comment) => (
-        <div key={comment.id} className="bg-white p-4 rounded-lg shadow mb-4">
-          <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: comment.content }} />
-          <p className="text-sm text-gray-500 mt-2">
-            By {comment.author.node.name} on {new Date(comment.date).toLocaleDateString()}
-          </p>
-        </div>
-      ))}
+      {comments.length > 0 ? (
+        comments.map((comment) => (
+          <div key={comment.id} className="bg-white p-4 rounded-lg shadow mb-4">
+            <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: comment.content }} />
+            <p className="text-sm text-gray-500 mt-2">
+              By {comment.author.node.name} on {new Date(comment.date).toLocaleDateString()}
+            </p>
+          </div>
+        ))
+      ) : (
+        <p className="text-gray-500 mb-4">No comments yet. Be the first to comment!</p>
+      )}
       <form onSubmit={handleSubmit} className="mt-6">
         <input
           type="text"

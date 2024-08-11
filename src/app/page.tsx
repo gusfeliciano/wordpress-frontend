@@ -1,109 +1,9 @@
-import Image from 'next/image'
 import Link from 'next/link'
-import { gql } from "@apollo/client";
-import client from "../lib/apollo-client";
-import SearchBar from '../components/SearchBar';
-import FeaturedPost from '../components/FeaturedPost';
-import PostCard from '../components/PostCard';
-import { Tag } from 'lucide-react';
-
-interface Post {
-  id: string;
-  title: string;
-  excerpt: string;
-  slug: string;
-  date: string;
-  featuredImage: {
-    node: {
-      sourceUrl: string;
-    };
-  } | null;
-  categories: {
-    nodes: Category[];
-  };
-  tags: {
-    nodes: Tag[];
-  };
-}
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  count: number;
-}
-
-interface Tag {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-interface PageInfo {
-  endCursor: string;
-  hasNextPage: boolean;
-}
-
-const GET_POSTS = gql`
-  query GetPosts($first: Int!, $after: String) {
-    posts(first: $first, after: $after) {
-      nodes {
-        id
-        title
-        excerpt
-        slug
-        date
-        featuredImage {
-          node {
-            sourceUrl
-          }
-        }
-        categories {
-          nodes {
-            id
-            name
-            slug
-          }
-        }
-        tags {
-          nodes {
-            id
-            name
-            slug
-          }
-        }
-      }
-      pageInfo {
-        endCursor
-        hasNextPage
-      }
-    }
-    categories(first: 10) {
-      nodes {
-        id
-        name
-        slug
-        count
-      }
-    }
-  }
-`;
-
-async function getPosts(first: number, after?: string): Promise<{ posts: Post[], pageInfo: PageInfo, categories: Category[] }> {
-  const { data } = await client.query({
-    query: GET_POSTS,
-    variables: { first, after },
-  });
-  
-  // Filter out categories with no posts
-  const nonEmptyCategories = data.categories.nodes.filter((category: Category) => category.count > 0);
-  
-  return { 
-    posts: data.posts.nodes, 
-    pageInfo: data.posts.pageInfo, 
-    categories: nonEmptyCategories.slice(0, 5) // Limit to 5 categories
-  };
-}
+import { getPosts } from '../lib/api/posts'
+import SearchBar from '../components/SearchBar'
+import FeaturedPost from '../components/FeaturedPost'
+import PostCard from '../components/PostCard'
+import { Tag } from 'lucide-react'
 
 export default async function Home({
   searchParams,
@@ -139,7 +39,7 @@ export default async function Home({
           <section className="mb-12">
             <h2 className="text-2xl font-bold mb-4 text-[#1A385A]">Latest Travel Stories</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map((post: Post) => (
+              {posts.map((post) => (
                 <PostCard
                   key={post.id}
                   title={post.title}
@@ -174,7 +74,7 @@ export default async function Home({
           <section className="mt-12">
             <h2 className="text-2xl font-bold mb-4 text-[#1A385A]">Explore by Category</h2>
             <div className="flex flex-wrap gap-4">
-              {categories.map((category: Category) => (
+              {categories.map((category) => (
                 <Link
                   key={category.id}
                   href={`/category/${category.slug}`}
